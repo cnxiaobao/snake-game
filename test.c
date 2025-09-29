@@ -18,7 +18,7 @@ int main()
 		{
 
 			case NORMAL://Õý³£×´Ì¬
-
+				Output_Information(&game_info);
 				break;
 
 			case PAUSE://ÔÝÍ£×´Ì¬

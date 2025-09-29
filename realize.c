@@ -1,13 +1,14 @@
 #include "realize.h"
 
-//当behavior为1时，表示插入蛇身链表尾插
+//当behavior为1时，表示插入蛇身链表头插
 //当behavior为2时，表示插入食物链表尾插
+//当behavior为3时，表示插入蛇身链表尾插
 void* Insert_Single_Bnake_Body_Node_At_Head(Maintain_Game_Information* game_info, int x, int y, int behavior)
 {
 	//确保传入的指针不为空
 	assert(game_info);
 
-	//当behavior为1时，表示插入蛇身链表尾插
+	//当behavior为1时，表示插入蛇身链表头插
 	if (behavior == 1)
 	{
 		//创建一个新的蛇身节点
@@ -18,15 +19,14 @@ void* Insert_Single_Bnake_Body_Node_At_Head(Maintain_Game_Information* game_info
 		new_node->y = y; //设置新节点的Y坐标
 		if (game_info->head == NULL)
 		{
-			game_info->head = new_node; //更新头节点为新节点
+			game_info->head = new_node; //更新蛇链表尾节点(蛇头)
 			new_node->next = NULL; //新节点的下一个节点为空
-			game_info->tail = new_node; //更新尾节点为新节点
+			game_info->tail = new_node; //更新蛇链表头节点(蛇尾)
 		}
 		else
 		{
-			game_info->head->next = new_node; //将当前尾节点的下一个节点指向新节点
-			game_info->head = new_node; //更新头节点为新节点
-			new_node->next = NULL; //新节点的下一个节点为空
+			new_node->next = game_info->tail;
+			game_info->tail = new_node; //更新蛇链表头节点(蛇尾)
 		}
 		return new_node; //返回新插入的节点
 	}
@@ -52,6 +52,28 @@ void* Insert_Single_Bnake_Body_Node_At_Head(Maintain_Game_Information* game_info
 		}
 		
 		return new_food; //返回新插入的节点
+	}
+	else if (behavior == 3) //当behavior为3时，表示插入蛇身链表尾插
+	{
+		//创建一个新的蛇身节点
+		Single_Bnake_Body_Node* new_node = (Single_Bnake_Body_Node*)malloc(sizeof(Single_Bnake_Body_Node));
+		//确保内存分配成功
+		assert(new_node);
+		new_node->x = x; //设置新节点的X坐标
+		new_node->y = y; //设置新节点的Y坐标
+		if (game_info->tail == NULL)
+		{
+			game_info->head = new_node; //更新蛇链表尾节点(蛇头)
+			new_node->next = NULL; //新节点的下一个节点为空
+			game_info->tail = new_node; //更新蛇链表头节点(蛇尾)
+		}
+		else
+		{
+			game_info->head->next = new_node; //将当前蛇链表尾节点(蛇头)的下一个节点指向新节点
+			game_info->head = new_node; //更新蛇链表尾节点(蛇头)
+			new_node->next = NULL; //新节点的下一个节点为空
+		}
+		return new_node; //返回新插入的节点
 	}
 	else
 	{
@@ -79,14 +101,7 @@ void Console_Refresh(Maintain_Game_Information* game_info)
 			}
 		}
 	}
-	//绘制蛇身
-	Single_Bnake_Body_Node* current = game_info->tail;
-	while (current)
-	{
-		Locate_Cursor_Position(current->x * 2, current->y, game_info->houtput); //每个字符宽度为2
-		printf("口");
-		current = current->next; //移动到下一个节点
-	}
+	
 	//绘制食物
 	Food_Node* food_current = game_info->food_tail;
 	while (food_current)
@@ -95,6 +110,21 @@ void Console_Refresh(Maintain_Game_Information* game_info)
 		printf("※");
 		food_current = food_current->next; //移动到下一个节点
 	}
+
+	//绘制蛇身蛇头为“○”蛇尾为“╳”
+	Locate_Cursor_Position(game_info->head->x * 2, game_info->head->y, game_info->houtput); //每个字符宽度为2
+	printf("○");
+	Locate_Cursor_Position(game_info->tail->x * 2, game_info->tail->y, game_info->houtput); //每个字符宽度为2
+	printf("╳");
+	//绘制蛇身
+	Single_Bnake_Body_Node* current = game_info->tail->next; //从蛇尾的下一个节点开始绘制
+	while (current && current != game_info->head) //确保不绘制蛇头
+	{
+		Locate_Cursor_Position(current->x * 2, current->y, game_info->houtput); //每个字符宽度为2
+		printf("◇");
+		current = current->next; //移动到下一个节点
+	}
+
 	//绘制分数和其他信息
 	Locate_Cursor_Position(60, 5, game_info->houtput);
 	printf("分数: %d", game_info->score);
@@ -103,6 +133,8 @@ void Console_Refresh(Maintain_Game_Information* game_info)
 	Locate_Cursor_Position(60, 9, game_info->houtput);
 	printf("当前食物数量: %d", game_info->food_count);
 	Locate_Cursor_Position(60, 11, game_info->houtput);
+	printf("当前游戏速度: %dms", game_info->sleep_time);
+	Locate_Cursor_Position(60, 13, game_info->houtput);
 	printf("当前游戏状态: ");
 	switch (game_info->state)
 	{
@@ -118,6 +150,12 @@ void Console_Refresh(Maintain_Game_Information* game_info)
 	case KILL_BOUNDARY:
 		printf("撞墙");
 	}
+	Locate_Cursor_Position(60, 17, game_info->houtput);
+	printf("使用f3加速,f4减速,速度越快分数越高");
+	Locate_Cursor_Position(60, 19, game_info->houtput);
+	printf("按 P 键暂停/继续游戏，按 Esc 键退出游戏");
+	Locate_Cursor_Position(60, 23, game_info->houtput);
+	printf("若输入无效,可尝试切换英文输入环境");
 }
 
 //定位光标位置
@@ -131,6 +169,83 @@ void Locate_Cursor_Position(int x, int y, HANDLE houtput)
 	pos.Y = y; //设置Y坐标
 	//应用控制台光标位置
 	SetConsoleCursorPosition(houtput, pos);
+}
+
+//蛇身移动
+void Move_Snake_Body(Maintain_Game_Information* game_info)
+{
+	//确保传入的指针不为空
+	assert(game_info);
+	//创建一个新的蛇头节点，位置根据当前方向决定
+	int new_head_x = game_info->head->x;
+	int new_head_y = game_info->head->y;
+	switch (game_info->dir)
+	{
+	case UP:
+		new_head_y -= 1; //向上移动
+		break;
+	case DOWN:
+		new_head_y += 1; //向下移动
+		break;
+	case LEFT:
+		new_head_x -= 1; //向左移动
+		break;
+	case RIGHT:
+		new_head_x += 1; //向右移动
+		break;
+	default:
+		break;
+	}
+	//检查新蛇头位置是否撞墙
+	if (new_head_x <= 0 || new_head_x >= 29 || new_head_y <= 0 || new_head_y >= 29)
+	{
+		game_info->state = KILL_BOUNDARY; //设置游戏状态为撞墙
+		return;
+	}
+	//检查新蛇头位置是否撞到自己
+	Single_Bnake_Body_Node* current = game_info->tail;
+	while (current)
+	{
+		if (current->x == new_head_x && current->y == new_head_y)
+		{
+			game_info->state = KILL_SELF; //设置游戏状态为撞自己
+			return;
+		}
+		current = current->next; //移动到下一个节点
+	}
+	
+	//遍历食物链表，检查是否吃到食物
+	Food_Node* food_current = game_info->food_tail;
+	bool ate_food = false; //标记是否吃到食物
+	while (food_current)
+	{
+		if (food_current->x == new_head_x && food_current->y == new_head_y)
+		{
+			ate_food = true; //标记吃到食物
+			break;
+		}
+		food_current = food_current->next; //移动到下一个节点
+	}
+
+	//当ate_food为true时，表示吃到食物
+	if (ate_food)
+	{
+		if (!Insert_Single_Bnake_Body_Node_At_Head(game_info, new_head_x, new_head_y, 3)) //在蛇身链表头尾插新蛇头
+		{
+			Free_All_Dynamic_Memory(game_info); //释放所有动态分配的内存
+			exit(-1); //插入失败，退出程序
+		}
+	}
+	else//当ate_food为false时，表示未吃到食物
+	{
+		game_info->head->next = game_info->tail; //将当前蛇头的下一个节点指向蛇尾
+		game_info->head = game_info->head->next; //更新蛇头为当前蛇头的下一个节点
+		game_info->tail = game_info->tail->next; //更新蛇尾为当前蛇尾的下一个节点
+		game_info->head->next = NULL;	 //将新的蛇头的下一个节点指向NULL
+
+		game_info->head->x = new_head_x; //更新蛇头的X坐标
+		game_info->head->y = new_head_y; //更新蛇头的Y坐标
+	}
 }
 
 //初次初始化
@@ -148,6 +263,9 @@ void First_Init(Maintain_Game_Information* game_info)
 	//初始化控制台窗口
 	//设置控制台窗口大小为100列30行
 	system("mode con cols=100 lines=33"); 
+
+	//设置随机数种子
+	srand((unsigned int)time(NULL));
 
 	//获取控制台句柄
 	game_info->houtput = GetStdHandle(STD_OUTPUT_HANDLE); 
@@ -167,12 +285,16 @@ void First_Init(Maintain_Game_Information* game_info)
 	game_info->food = NULL;
 
 	//设置游戏初始状态
+	game_info->last_update_time = GetTickCount64();			//获取当前时间
+	game_info->current_time = game_info->last_update_time;	//设置当前时间为上一次更新时间
+
 	game_info->length = 5;				//初始蛇长度为5
 	game_info->dir = RIGHT;				//初始方向向右
+	game_info->next_dir = RIGHT;		//初始下次更新方向向右
 	game_info->state = NOT_START;		//设置游戏为未开始状态
 	game_info->food_count = 1;			//初始允许存在1个食物
 	game_info->score = 0;				//初始分数为0
-	game_info->sleep_time = 75;			//初始休息时间为75毫秒
+	game_info->sleep_time = 500;		//初始休息时间为500毫秒
 	game_info->is_game_over = false;	//初始游戏未结束
 }
 
@@ -182,12 +304,15 @@ void Game_Init(Maintain_Game_Information* game_info)
 	//确保传入的指针不为空
 	assert(game_info); 
 
+	Free_All_Dynamic_Memory(game_info);//释放之前的动态内存，防止内存泄漏
+
 	//创建蛇身
 	for (int i = 0; i < game_info->length; i++)
 	{
 		//当Insert_Single_Bnake_Body_Node_At_Head返回NULL时，表示插入失败
 		if (!Insert_Single_Bnake_Body_Node_At_Head(game_info, 15 - i, 10, 1))
 		{
+			Free_All_Dynamic_Memory(game_info);//释放所有动态分配的内存
 			exit(-1); //插入失败，退出程序
 		}
 	}
@@ -224,11 +349,21 @@ void Game_Init(Maintain_Game_Information* game_info)
 		//当Insert_Single_Bnake_Body_Node_At_Head返回NULL时，表示插入失败
 		if (!Insert_Single_Bnake_Body_Node_At_Head(game_info, food_x, food_y, 2))
 		{
+			Free_All_Dynamic_Memory(game_info);//释放所有动态分配的内存
 			exit(-1); //插入失败，退出程序
 		}
 	}
 
-	game_info->state = NORMAL; //将游戏状态设置为正常
+	//设置游始状态
+	game_info->last_update_time = GetTickCount64();			//获取当前时间
+	game_info->current_time = game_info->last_update_time;	//设置当前时间为上一次更新时间
+
+	game_info->dir = RIGHT;				//初始方向向右
+	game_info->next_dir = RIGHT;		//初始下次更新方向向右
+	game_info->score = 0;				//初始分数为0
+	game_info->sleep_time = 500;		//初始休息时间为500毫秒
+	game_info->is_game_over = false;	//初始游戏未结束
+	game_info->state = NORMAL;			//将游戏状态设置为正常
 
 	//刷新控制台显示
 	Console_Refresh(game_info);
@@ -248,7 +383,7 @@ void Output_Information(Maintain_Game_Information* game_info)
 		Locate_Cursor_Position((100 - 68) / 2, 12, game_info->houtput);
 		printf("游戏说明: 使用方向键控制蛇的移动方向，吃到食物可以增加长度和分数。");
 		Locate_Cursor_Position((100 - 44) / 2, 14, game_info->houtput);
-		printf("按 'P' 键暂停/继续游戏，按 'Esc' 键退出游戏。");
+		printf("按 P 键暂停/继续游戏，按 Esc 键退出游戏。");
 		Locate_Cursor_Position((100 - 19) / 2, 16, game_info->houtput);
 		printf("按任意键开始游戏...");
 		_getch(); //等待用户按键
@@ -257,7 +392,7 @@ void Output_Information(Maintain_Game_Information* game_info)
 		int choice = 0;
 		while (choice != 1 && choice != 2)
 		{
-			
+
 			Locate_Cursor_Position((100 - 36) / 2, 10, game_info->houtput);
 			printf("是否自定义初始蛇长度与食物数量？");
 			Locate_Cursor_Position((100 - 20) / 2, 12, game_info->houtput);
@@ -277,7 +412,7 @@ void Output_Information(Maintain_Game_Information* game_info)
 				system("pause");
 				system("cls"); //清屏
 			}
-			
+
 		}
 		if (choice == 1)
 		{
@@ -330,7 +465,116 @@ void Output_Information(Maintain_Game_Information* game_info)
 			Game_Init(game_info); //游戏初始化
 		}
 	}
+	else if (game_info->state == NORMAL)//正常状态
+	{
+
+		if (GetAsyncKeyState(0x50)) //按P键暂停
+		{
+			game_info->state = PAUSE;
+			Locate_Cursor_Position(60, 27, game_info->houtput);
+			printf("游戏已暂停");
+			Locate_Cursor_Position(60, 28, game_info->houtput);
+			printf("按 P 键继续游戏，按 Esc 键退出游戏");
+
+			return;
+		}
+		
+		if (GetAsyncKeyState(VK_ESCAPE)) //按Esc键退出
+		{
+			game_info->is_game_over = true;
+
+			Free_All_Dynamic_Memory(game_info);//释放所有动态分配的内存
+			Locate_Cursor_Position((100 - 12) / 2, 15, game_info->houtput);
+			printf("游戏已退出");
+			Locate_Cursor_Position((100 - 21) / 2, 17, game_info->houtput);
+			printf("感谢您的游玩，欢迎下次再来!");
 	
+			exit(0); //退出程序
+		}
+
+		//蛇的下一次移动方向控制
+		switch (game_info->dir)
+		{
+			case UP:
+				if (GetAsyncKeyState(VK_LEFT))
+				{
+					game_info->next_dir = LEFT;
+				}
+				if (GetAsyncKeyState(VK_RIGHT))
+				{
+					game_info->next_dir = RIGHT;
+				}
+				break;
+
+			case DOWN:
+				if (GetAsyncKeyState(VK_LEFT))
+				{
+					game_info->next_dir = LEFT;
+				}
+				if (GetAsyncKeyState(VK_RIGHT))
+				{
+					game_info->next_dir = RIGHT;
+				}
+				break;
+
+			case LEFT:
+				if (GetAsyncKeyState(VK_UP))
+				{
+					game_info->next_dir = UP;
+				}
+				else if (GetAsyncKeyState(VK_DOWN))
+				{
+					game_info->next_dir = DOWN;
+				}
+				break;
+
+			case RIGHT:
+				if (GetAsyncKeyState(VK_UP))
+				{
+					game_info->next_dir = UP;
+				}
+				else if (GetAsyncKeyState(VK_DOWN))
+				{
+					game_info->next_dir = DOWN;
+				}
+				break;
+
+		default:
+			break;
+		}
+
+		game_info->current_time = GetTickCount64(); //获取当前时间
+
+		//检查是否达到移动时间间隔
+		if (game_info->current_time - game_info->last_update_time >= (ULONGLONG)game_info->sleep_time)
+		{
+			//速度控制
+			if (GetAsyncKeyState(VK_F3)) //按F3加速
+			{
+				if (game_info->sleep_time > 100)
+				{
+					game_info->sleep_time -= 100;
+				}
+			}
+			else if (GetAsyncKeyState(VK_F4)) //按F4减速
+			{
+				if (game_info->sleep_time < 1000)
+				{
+					game_info->sleep_time += 100;
+				}
+			}
+
+			//更新蛇头方向
+			game_info->dir = game_info->next_dir;
+			//移动蛇身
+			Move_Snake_Body(game_info);
+			//更新时间
+			game_info->last_update_time = game_info->current_time;
+			//刷新控制台显示	
+			Console_Refresh(game_info);
+		}
+
+	}
 
 	//后续输出信息和提示代码待补充
 }
@@ -341,7 +585,7 @@ void Free_All_Dynamic_Memory(Maintain_Game_Information* game_info)
 	//确保传入的指针不为空
 	assert(game_info);
 	//释放蛇身节点内存
-	Single_Bnake_Body_Node* current = game_info->head;
+	Single_Bnake_Body_Node* current = game_info->tail;
 	while (current)
 	{
 		//保存当前节点，移动到下一个节点，释放当前节点
@@ -352,7 +596,7 @@ void Free_All_Dynamic_Memory(Maintain_Game_Information* game_info)
 	game_info->head = NULL;
 	game_info->tail = NULL;
 	//释放食物节点内存
-	Food_Node* food_current = game_info->food;
+	Food_Node* food_current = game_info->food_tail;
 	while (food_current)
 	{
 		//保存当前节点，移动到下一个节点，释放当前节点
@@ -361,10 +605,8 @@ void Free_All_Dynamic_Memory(Maintain_Game_Information* game_info)
 		free(temp);
 	}
 	game_info->food = NULL;
-	//恢复控制台光标可见
-	game_info->cursor_info.bVisible = TRUE;
-	//应用光标信息设置
-	SetConsoleCursorInfo(game_info->houtput, &game_info->cursor_info);
+	game_info->food_tail = NULL;
+
 	//清屏
 	system("cls");
 }

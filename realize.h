@@ -52,16 +52,19 @@ typedef struct Food_Node
 //定义维护游戏信息的结构体
 typedef struct Maintain_Game_Information
 {
-	Single_Bnake_Body_Node* head;		//蛇头节点
-	Single_Bnake_Body_Node* tail;		//蛇尾节点
-	int length;							//初始蛇身长度
-	enum Direction dir;					//蛇头方向
+	ULONGLONG current_time;				//当前时间
+	ULONGLONG last_update_time;			//上一次更新时间
+	Single_Bnake_Body_Node* head;		//指向蛇链表尾节点(蛇头)
+	Single_Bnake_Body_Node* tail;		//指向蛇链表头节点(蛇尾)
+	int length;							//蛇身初始长度
+	enum Direction dir;					//当前蛇头方向
+	enum Direction next_dir;			//下次更新蛇头方向
 	Food_Node* food;					//食物头节点
 	Food_Node* food_tail;				//食物尾节点
 	int food_count;						//允许存在的食物数量
 	int score;							//分数
 	enum Game_State state;				//游戏状态
-	int sleep_time;						//休息时间,单位毫秒,控制游戏速度,值越小速度越快,初始值75
+	int sleep_time;						//休息时间,单位毫秒,控制游戏速度,值越小速度越快,初始值75(使用"f3"加速,"f4"减速)
 	bool is_game_over;					//是否结束游戏
 	HANDLE houtput;						//控制台句柄
 	CONSOLE_CURSOR_INFO cursor_info;	//控制台光标信息
@@ -75,6 +78,9 @@ void Console_Refresh(Maintain_Game_Information* game_info);
 
 //定位光标位置
 void Locate_Cursor_Position(int x, int y, HANDLE houtput);
+
+//蛇身移动
+void Move_Snake_Body(Maintain_Game_Information* game_info);
 
 //初次初始化
 void First_Init(Maintain_Game_Information* game_info);
